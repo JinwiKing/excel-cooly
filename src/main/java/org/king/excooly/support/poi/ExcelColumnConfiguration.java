@@ -1,6 +1,8 @@
 package org.king.excooly.support.poi;
 
 import java.lang.reflect.AccessibleObject;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.king.excooly.ExcelCellValueDeserializer;
@@ -13,31 +15,33 @@ import org.king.excooly.support.PropertyValueSerializer;
  * @author wangjw5
  */
 public class ExcelColumnConfiguration {
+	Class<?> dataType;
 	
 	AccessibleObject accessibleObject;
 	
+	boolean requiredForDeserializing;
+	int columnIndex;
+	String columnName;
+	String name;
+	String matchPattern;
 	Class<? extends ExcelCellValueDeserializer> deserializerType;
 	ExcelCellValueDeserializer deserializer;
 	Class<? extends JavaValueSetter> valueSetterType;
 	JavaValueSetter valueSetter;
-	
+	boolean requiredForSerializing;
+	int order;
 	Class<? extends JavaValueGetter> valueGetterType;
 	JavaValueGetter valueGetter;
 	Class<? extends PropertyValueSerializer> serializerType;
 	PropertyValueSerializer serializer;
-
+	
+	boolean isContainer = false;
+	boolean isArray = false;
+	Class<?> concreteType;
+	
+	boolean isDateCell = false;
 	// 日期类型表格参数（当注解为ExcelDateCell时生效）
 	String dateFormat;
-	
-	// 基本参数
-	int order;
-	int width;
-	String name;
-	boolean ignoreSerialization;
-	boolean ignoreDeserialization;
-	
-	String namePattern;
-	boolean required;
 	
 	// 枚举类型表格参数（当注解为ExcelEnumColumn时生效）
 	boolean isEnum = false;
@@ -46,21 +50,14 @@ public class ExcelColumnConfiguration {
 	Map<String, String> excelPropertyMap;
 	String defaultPropertyVal;
 	
-	// 特殊列-工号
-	boolean isAccountColumn = false;
-
+	boolean isEmbedded = false;
+	List<ExcelColumnConfiguration> embeddedConfigurations;
+	
 	/**
 	 * 序列化到Excel表格时，属性对应表格顺序。值越大越靠后。
 	 */
 	public int getOrder() {
 		return order;
-	}
-
-	/**
-	 * 序列化到Excel表格时，该属性对应的表格宽度。
-	 */
-	public int getWidth() {
-		return width;
 	}
 
 	/**
@@ -91,19 +88,79 @@ public class ExcelColumnConfiguration {
 		return dateFormat;
 	}
 
-	public String getNamePattern() {
-		return namePattern;
-	}
-
-	public boolean isRequired() {
-		return required;
-	}
-
 	public Class<? extends ExcelCellValueDeserializer> getDeserializer() {
 		return deserializerType;
 	}
 
 	public Class<? extends JavaValueSetter> getSetter() {
 		return valueSetterType;
+	}
+
+	public AccessibleObject getAccessibleObject() {
+		return accessibleObject;
+	}
+
+	public boolean isRequiredForDeserializing() {
+		return requiredForDeserializing;
+	}
+
+	public int getColumnIndex() {
+		return columnIndex;
+	}
+
+	public String getColumnName() {
+		return columnName;
+	}
+
+	public String getMatchPattern() {
+		return matchPattern;
+	}
+
+	public Class<? extends ExcelCellValueDeserializer> getDeserializerType() {
+		return deserializerType;
+	}
+
+	public Class<? extends JavaValueSetter> getValueSetterType() {
+		return valueSetterType;
+	}
+
+	public JavaValueSetter getValueSetter() {
+		return valueSetter;
+	}
+
+	public boolean isRequiredForSerializing() {
+		return requiredForSerializing;
+	}
+
+	public Class<? extends JavaValueGetter> getValueGetterType() {
+		return valueGetterType;
+	}
+
+	public JavaValueGetter getValueGetter() {
+		return valueGetter;
+	}
+
+	public Class<? extends PropertyValueSerializer> getSerializerType() {
+		return serializerType;
+	}
+
+	public boolean isEnum() {
+		return isEnum;
+	}
+
+	public Map<String, String> getPropertyExcelMap() {
+		return propertyExcelMap;
+	}
+
+	public String getDefaultExcelVal() {
+		return defaultExcelVal;
+	}
+
+	public Map<String, String> getExcelPropertyMap() {
+		return excelPropertyMap;
+	}
+
+	public String getDefaultPropertyVal() {
+		return defaultPropertyVal;
 	}
 }

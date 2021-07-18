@@ -1,11 +1,16 @@
 package org.king.excooly.support.poi;
 
+import java.util.Map;
+
+import org.king.excooly.ExcelCellValueDeserializer;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 
 public class PoiExcelValueDeserializerParameter implements ExcelValueDeserializerParameter {
 	int rowIdx;
-	Object cell;
-	ReadingExcelColumn readingColumn;
+	Object[] cells;
+	FocusingExcelColumn readingColumn;
+	Map<Class<?>, ExcelCellValueDeserializer> deserializes;
+	Class<?> targetJavaType;
 	@Override
 	public int rowIdx() {
 		return rowIdx;
@@ -23,7 +28,15 @@ public class PoiExcelValueDeserializerParameter implements ExcelValueDeserialize
 		return readingColumn.getConfiguration();
 	}
 	@Override
-	public Object cell() {
-		return cell;
+	public Object[] cells() {
+		return cells;
+	}
+	@Override
+	public Map<Class<?>, ExcelCellValueDeserializer> deserializers() {
+		return deserializes;
+	}
+	@Override
+	public Class<?> targetJavaType() {
+		return targetJavaType;
 	}
 }

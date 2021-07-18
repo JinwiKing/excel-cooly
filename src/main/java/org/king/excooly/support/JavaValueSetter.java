@@ -1,6 +1,6 @@
 package org.king.excooly.support;
 
-import org.king.excooly.support.poi.ReadingExcelColumn;
+import org.king.excooly.support.poi.FocusingExcelColumn;
 
 /**
  * java值注入器
@@ -8,5 +8,5 @@ import org.king.excooly.support.poi.ReadingExcelColumn;
  */
 public interface JavaValueSetter {
 
-	void set(Object instance, Object value, ReadingExcelColumn readingColumn);
+	void set(Object instance, Object value, FocusingExcelColumn readingColumn);
 }

@@ -35,7 +35,7 @@ public class WritingExcelColumn extends FocusingExcelColumn {
 		super(excelColumn);
 		this.objctJavaBeanGetter = javaBeanGetter;
 		this.order = excelColumn.order;
-		this.width = excelColumn.width * 256;
+//		this.width = excelColumn.width * 256;
 		this.usingColName = excelColumn.name;
 		if(usingColName == null || usingColName.trim().length() <= 0) {
 			if(annotatedObject instanceof Field) usingColName = ((Field) annotatedObject).getName();

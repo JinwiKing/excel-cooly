@@ -3,15 +3,15 @@ package org.king.excooly.support.poi;
 import java.math.BigDecimal;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.king.excooly.support.AbstractExcelValueDeserializer;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.PropertyValueSerializer;
+import org.king.excooly.support.common.AbstractExcelValueDeserializer;
 
 public class BigDecimalCodec extends AbstractExcelValueDeserializer implements PropertyValueSerializer {
 
 	@Override
 	public Object innerDeserialize(ExcelValueDeserializerParameter deserializerParam) {
-		Cell cell = (Cell) deserializerParam.cell();
+		Cell cell = (Cell) deserializerParam.cells()[0];
 		if (cell == null) return null;
 		BigDecimal v = null;
 		int ct = cell.getCellType();

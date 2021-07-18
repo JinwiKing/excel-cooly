@@ -5,10 +5,10 @@ import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.FormulaError;
-import org.king.excooly.ExcelUtils;
-import org.king.excooly.support.AbstractExcelValueDeserializer;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.PropertyValueSerializer;
+import org.king.excooly.support.common.AbstractExcelValueDeserializer;
+import org.king.excooly.support.common.ExcelUtils;
 
 /**
  * 负责将Excel值转为String类型以及将String类型值转为Excel值的默认转换器。
@@ -18,7 +18,7 @@ class StringCodec extends AbstractExcelValueDeserializer implements PropertyValu
 
 	@Override
 	public Object innerDeserialize(ExcelValueDeserializerParameter deserializerParam) {
-		Cell cell = (Cell) deserializerParam.cell();
+		Cell cell = (Cell) deserializerParam.cells()[0];
 		ExcelColumnConfiguration configuration = deserializerParam.configuration();
 		if(configuration.isEnum) {
 			Map<String, String> excelPropertyMap = configuration.excelPropertyMap;
@@ -48,12 +48,6 @@ class StringCodec extends AbstractExcelValueDeserializer implements PropertyValu
 			case Cell.CELL_TYPE_STRING: v = cell.getStringCellValue(); break;
 			case Cell.CELL_TYPE_ERROR: v = null; break;
 			default: throw new IllegalStateException("Unsupported format cell type " + ct + " to string");
-		}
-		
-		if (configuration.isAccountColumn) {
-			// 专门处理工号列
-			int inx = v.indexOf(".");
-			if(inx >= 0) v = v.substring(0, inx);
 		}
 		
 		return v;

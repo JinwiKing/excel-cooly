@@ -3,10 +3,10 @@ package org.king.excooly.support.poi;
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.king.excooly.ExcelUtils;
-import org.king.excooly.support.AbstractExcelValueDeserializer;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.PropertyValueSerializer;
+import org.king.excooly.support.common.AbstractExcelValueDeserializer;
+import org.king.excooly.support.common.ExcelUtils;
 
 /**
  * 负责将Excel值转为Long或long类型以及将Long或long类型值转为Excel值的默认转换器。
@@ -16,7 +16,7 @@ class LongCodec extends AbstractExcelValueDeserializer implements PropertyValueS
 
 	@Override
 	public Object innerDeserialize(ExcelValueDeserializerParameter deserializerParam) {
-		Cell cell = (Cell) deserializerParam.cell();
+		Cell cell = (Cell) deserializerParam.cells()[0];
 		ExcelColumnConfiguration configuration = deserializerParam.configuration();
 		if(configuration.isEnum) {
 			Map<String, String> excelPropertyMap = configuration.excelPropertyMap;

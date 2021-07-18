@@ -9,9 +9,9 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.king.excooly.support.AbstractExcelValueDeserializer;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.PropertyValueSerializer;
+import org.king.excooly.support.common.AbstractExcelValueDeserializer;
 
 /**
  * 负责将Excel值转为Date类型以及将Date类型值转为Excel值的默认转换器。
@@ -21,7 +21,7 @@ class DateCodec extends AbstractExcelValueDeserializer implements PropertyValueS
 
 	@Override
 	public Object innerDeserialize(ExcelValueDeserializerParameter deserializerParam) {
-		Cell cell = (Cell) deserializerParam.cell();
+		Cell cell = (Cell) deserializerParam.cells()[0];
 		ExcelColumnConfiguration configuration = deserializerParam.configuration();
 		if (cell == null) return null;
 		String v = null;

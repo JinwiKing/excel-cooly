@@ -1,5 +1,9 @@
 package org.king.excooly.support;
 
+import java.util.List;
+import java.util.Map;
+
+import org.king.excooly.ExcelCellValueDeserializer;
 import org.king.excooly.support.poi.ExcelColumnConfiguration;
 
 public interface ExcelValueDeserializerParameter {
@@ -27,5 +31,9 @@ public interface ExcelValueDeserializerParameter {
 	/**
 	 * Current deserializing excel cell. Provided by third-part tools
 	 */
-	Object cell();
+	Object[] cells();
+	
+	Map<Class<?>, ExcelCellValueDeserializer> deserializers();
+	
+	Class<?> targetJavaType();
 }
