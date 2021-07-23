@@ -16,9 +16,10 @@ public class PropertyValueDynamicSerializer implements PropertyValueSerializer {
 		this.serializers = serializers;
 	}
 
-	public void serialize(PropertyValueSerializationParameter serializationParam) {
+	@Override
+	public String serialize(PropertyValueSerializationParameter serializationParam) {
 		Class<?> javaValueType = serializationParam.getJavaValue().getClass();
 		PropertyValueSerializer serializer = serializers.get(javaValueType);
-		serializer.serialize(serializationParam);
+		return serializer.serialize(serializationParam);
 	}
 }

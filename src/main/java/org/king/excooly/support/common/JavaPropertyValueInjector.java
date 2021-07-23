@@ -3,7 +3,7 @@ package org.king.excooly.support.common;
 import java.lang.reflect.Field;
 
 import org.king.excooly.support.JavaValueSetter;
-import org.king.excooly.support.poi.FocusingExcelColumn;
+import org.king.excooly.support.poi.ReadingExcelColumn;
 
 public class JavaPropertyValueInjector implements JavaValueSetter {
 	
@@ -19,7 +19,7 @@ public class JavaPropertyValueInjector implements JavaValueSetter {
 	}
 
 	@Override
-	public void set(Object instance, Object value, FocusingExcelColumn readingColumn){
+	public void set(Object instance, Object value, ReadingExcelColumn readingColumn){
 		try {
 			if(value == null && isBaseType) return;
 			field.set(instance, value);

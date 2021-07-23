@@ -8,7 +8,7 @@ import org.king.excooly.support.ExcelValueDeserializerParameter;
 public class PoiExcelValueDeserializerParameter implements ExcelValueDeserializerParameter {
 	int rowIdx;
 	Object[] cells;
-	FocusingExcelColumn readingColumn;
+	ReadingExcelColumn readingColumn;
 	Map<Class<?>, ExcelCellValueDeserializer> deserializes;
 	Class<?> targetJavaType;
 	@Override
@@ -25,7 +25,7 @@ public class PoiExcelValueDeserializerParameter implements ExcelValueDeserialize
 	}
 	@Override
 	public ExcelColumnConfiguration configuration() {
-		return readingColumn.getConfiguration();
+		return readingColumn.getColumnConfiguration();
 	}
 	@Override
 	public Object[] cells() {

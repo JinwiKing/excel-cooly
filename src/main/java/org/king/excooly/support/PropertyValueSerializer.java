@@ -16,5 +16,5 @@ public interface PropertyValueSerializer {
 	 * @param wb 单元格所在的excel
 	 * @param excelCell 读取到的即将序列化的属性的注解
 	 */
-	void serialize(PropertyValueSerializationParameter serializationParam);
+	String serialize(PropertyValueSerializationParameter serializationParam);
 }

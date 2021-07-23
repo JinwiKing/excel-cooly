@@ -9,4 +9,9 @@ public class UsingDefaultValueDeserializer implements ExcelCellValueDeserializer
 	public Object deserialize(ExcelValueDeserializerParameter deserializerParam) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {
+		throw new UnsupportedOperationException();
+	}
 }

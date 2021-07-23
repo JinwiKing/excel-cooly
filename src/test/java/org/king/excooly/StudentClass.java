@@ -1,10 +1,11 @@
 package org.king.excooly;
 
 public class StudentClass {
-	@ExcelCell(name = "classno")
+	@ExcelCell(name = "classno", idCell = true, serializingName = "classno")
 	private String classNo;
-	@ExcelCell(name = "classname")
+	@ExcelCell(name = "classname", serializingName = "classname")
 	private String className;
+	
 	public String getClassNo() {
 		return classNo;
 	}

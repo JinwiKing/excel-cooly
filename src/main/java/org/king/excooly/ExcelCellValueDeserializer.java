@@ -12,5 +12,13 @@ public interface ExcelCellValueDeserializer {
 	/**
 	 * 反序列化Excel值
 	 */
-	Object deserialize(ExcelValueDeserializerParameter deserializerParam);
+	default Object deserialize(ExcelValueDeserializerParameter deserializerParam){
+		try {
+			return doDeserialize(deserializerParam);
+		} catch (Exception e) {
+			throw new RuntimeException("Deserializing row no. " + (deserializerParam.rowIdx() + 1) + ", column no. " + (deserializerParam.colIdx() + 1) + " failure" + e.getMessage());
+		}
+	}
+	
+	Object doDeserialize(ExcelValueDeserializerParameter deserializerParam);
 }

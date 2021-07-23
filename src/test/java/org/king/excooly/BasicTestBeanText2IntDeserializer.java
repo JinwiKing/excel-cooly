@@ -6,7 +6,7 @@ import org.king.excooly.support.ExcelValueDeserializerParameter;
 public class BasicTestBeanText2IntDeserializer implements ExcelCellValueDeserializer {
 
 	@Override
-	public Object deserialize(ExcelValueDeserializerParameter deserializerParam) {
+	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {
 		if(deserializerParam.cells()[0] instanceof Cell) {
 			Cell cell = (Cell) deserializerParam.cells()[0];
 			String str = cell.getStringCellValue();

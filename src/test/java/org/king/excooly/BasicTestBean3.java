@@ -3,14 +3,14 @@ package org.king.excooly;
 import java.util.List;
 
 public class BasicTestBean3 {
-	@ExcelCell(name = "id")
+	@ExcelCell(name = "id", serializingName = "id")
 	private String id;
-	@ExcelCell(name = "name")
+	@ExcelCell(name = "name", serializingName = "name")
 	private String name;
-	@ExcelCell(name = "性别")
+	@ExcelCell(name = "性别", serializingName = "sex")
 	private String sex;
 	
-	@ExcelCell(name = "classno", concreteType = StudentClass.class)
+	@ExcelCascadeCell(concreteType = StudentClass.class)
 	private List<StudentClass> classes;
 
 	public String getId() {

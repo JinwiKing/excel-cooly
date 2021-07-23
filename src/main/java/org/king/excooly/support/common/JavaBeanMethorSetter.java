@@ -3,7 +3,7 @@ package org.king.excooly.support.common;
 import java.lang.reflect.Method;
 
 import org.king.excooly.support.JavaValueSetter;
-import org.king.excooly.support.poi.FocusingExcelColumn;
+import org.king.excooly.support.poi.ReadingExcelColumn;
 
 public class JavaBeanMethorSetter implements JavaValueSetter {
 	private final Method setter;
@@ -13,7 +13,7 @@ public class JavaBeanMethorSetter implements JavaValueSetter {
 	}
 
 	@Override
-	public void set(Object instance, Object value, FocusingExcelColumn readingColumn){
+	public void set(Object instance, Object value, ReadingExcelColumn readingColumn){
 		try {
 			setter.invoke(instance, value);
 		} catch (Exception e) {

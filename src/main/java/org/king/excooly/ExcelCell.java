@@ -6,15 +6,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.king.excooly.support.JavaValueSetter;
-import org.king.excooly.support.PropertyValueSerializer;
 import org.king.excooly.support.JavaValueGetter;
+import org.king.excooly.support.JavaValueSetter;
 import org.king.excooly.support.poi.UsingDefaultValueDeserializer;
 import org.king.excooly.support.poi.UsingDefaultValueSetter;
 
 /**
  * Excel单元格
- * @author wangjw5
+ * @author king
  */
 @Inherited
 @Target({
@@ -23,6 +22,11 @@ import org.king.excooly.support.poi.UsingDefaultValueSetter;
 })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ExcelCell {
+	
+	/**
+	 * 表示该单元格所在的列为标识列 
+	 */
+	boolean idCell() default false;
 	
 	/**
 	 * For deserializing, it is using to indicate whether the excel column must be existed. If
@@ -106,15 +110,15 @@ public @interface ExcelCell {
 	int order() default 0;
 	
 	/**
+	 * For serializing, it is used to indicated column name corresponding to cell
+	 */
+	String serializingName() default "";
+	
+	/**
 	 * 指定读取属性的获取器，使用该获取器获取属性值。
 	 * 注意：当该注解注解在方法上时，该配置将失效。
 	 */
 	Class<? extends JavaValueGetter> getter() default UsingDefaultValueGetter.class;
-	
-	/**
-	 * 指定序列化器对属性值到excel单元格进行序列化
-	 */
-	Class<? extends PropertyValueSerializer> serializer() default UsingDefaultValueSerializer.class;
 
 	/**
 	 * 如果java类型是容器类型，需要提供具体类型

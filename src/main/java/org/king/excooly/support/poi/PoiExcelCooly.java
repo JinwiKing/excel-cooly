@@ -2,22 +2,23 @@ package org.king.excooly.support.poi;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,48 +28,48 @@ import java.util.Set;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.king.excooly.ExcelCascadeCell;
+import org.king.excooly.ExcelCell;
 import org.king.excooly.ExcelCellValueDeserializer;
-import org.king.excooly.ExcelCooly;
-import org.king.excooly.ExcelRowValueWriter;
+import org.king.excooly.ExcelColumnEnum;
+import org.king.excooly.ExcelDateCell;
+import org.king.excooly.ExcelEnumCell;
+import org.king.excooly.ExcelOperation;
 import org.king.excooly.ExcelTable;
 import org.king.excooly.ExcelType;
 import org.king.excooly.UsingDefaultValueGetter;
-import org.king.excooly.UsingDefaultValueSerializer;
-import org.king.excooly.logger.Logger;
-import org.king.excooly.logger.LoggerFactory;
 import org.king.excooly.support.ExcelColumnMatcher;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.JavaValueGetter;
 import org.king.excooly.support.PropertyValueSerializer;
 import org.king.excooly.support.common.ExcelColumnFullNameMatcher;
 import org.king.excooly.support.common.ExcelColumnPatternMatcher;
-import org.king.excooly.support.common.ExcelUtils;
 import org.king.excooly.support.common.JavaBeanMethodGetter;
 import org.king.excooly.support.common.JavaBeanMethorSetter;
 import org.king.excooly.support.common.JavaPropertyValueInjector;
 import org.king.excooly.support.common.JavaProprtyValueExtractor;
-import org.king.excooly.support.common.MergedColumn;
-import org.king.excooly.support.common.MergedList;
-import org.king.excooly.support.common.MergedRow;
-import org.king.excooly.support.common.PropertyValueDynamicSerializer;
+import org.king.excooly.support.common.MergedAddress;
+import org.king.excooly.support.common.MergedAddressMap;
 import org.king.excooly.support.common.ReflectionUtils;
+import org.king.excooly.support.logger.Logger;
+import org.king.excooly.support.logger.LoggerFactory;
 
 /**
  * 
  * @author king 
  */
 @ExcelTable
-public class PoiExcelCooly implements ExcelCooly {
+public class PoiExcelCooly implements ExcelOperation {
 	private static final Set<Class<?>> JDK_VALUE_TYPE = new HashSet<>();
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final Map<Class<?>, ExcelCellValueDeserializer> deserializers = new HashMap<>();
 	private final Map<Class<?>, PropertyValueSerializer> serializers = new HashMap<>();
+	private final SimpleCellValueReader simpleCellValueReader;
 	
 	static {
 		JDK_VALUE_TYPE.add(byte.class);
@@ -85,12 +86,16 @@ public class PoiExcelCooly implements ExcelCooly {
 		JDK_VALUE_TYPE.add(Double.class);
 		JDK_VALUE_TYPE.add(String.class);
 		JDK_VALUE_TYPE.add(Date.class);
+		JDK_VALUE_TYPE.add(LocalDate.class);
+		JDK_VALUE_TYPE.add(LocalTime.class);
+		JDK_VALUE_TYPE.add(LocalDateTime.class);
 		JDK_VALUE_TYPE.add(BigDecimal.class);
 	}
 	
-	public PoiExcelCooly (Map<Class<?>, ExcelCellValueDeserializer> deserializes, Map<Class<?>, PropertyValueSerializer> serializers) {
+	public PoiExcelCooly (Map<Class<?>, ExcelCellValueDeserializer> deserializes, Map<Class<?>, PropertyValueSerializer> serializers, SimpleCellValueReader simpleCellValueReader) {
 		if(deserializes != null) this.deserializers.putAll(deserializes);
 		if(serializers != null) this.serializers.putAll(serializers);
+		this.simpleCellValueReader = simpleCellValueReader;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -118,43 +123,39 @@ public class PoiExcelCooly implements ExcelCooly {
 		try {
 			Sheet sheet = workbook.getSheet(sheetName);
 			if(sheet == null) return new ArrayList<>(0);
-			LinkedList<Class<?>> lookingClassStack = new LinkedList<>();
-			LinkedList<Class<?>> dataTypeStack = new LinkedList<>();
-			lookingClassStack.add(dataType);
-			dataTypeStack.add(dataType);
-			List<ExcelColumnConfiguration> colCfgs = readConfigurationFromClass(dataType, dataType);
-			List<FocusingExcelColumn> basicCols = prepareFocusingExcelColumn(colCfgs);
-			Queue<FocusingExcelColumn> containedCols = new LinkedList<>(basicCols);
-			Set<FocusingExcelColumn> requiredCols = new HashSet<>();
-			Set<ExcelColumnMatcher> matchers = new HashSet<>();
-			Map<ExcelColumnMatcher, FocusingExcelColumn> matcherExcelColumnMap = new HashMap<>();
-			while(!containedCols.isEmpty()) {
-				FocusingExcelColumn column = containedCols.remove();
-				ExcelColumnConfiguration colCfg = column.configuration;
-				
-				ExcelColumnMatcher usingMatcher = getExcelColumnMatcher(colCfg);
-				matchers.add(usingMatcher);
-				matcherExcelColumnMap.put(usingMatcher, column);
-				
-				if(colCfg.isEmbedded) {
-					column.isEmbedded = colCfg.isEmbedded;
-					containedCols.addAll(column.embeddedExcelColumns);
-				}else if(colCfg.requiredForDeserializing) requiredCols.add(column);
+			
+			ExcelColumnConfigurationCollection rootCfgCollection = extractCfgFromClass(dataType, dataType);
+			ReadingExcelColumnCollection rootColCollection = prepareReadingExcelColumn(rootCfgCollection);
+			Queue<ReadingExcelColumnCollection> colCollectionQue = new LinkedList<>();
+			colCollectionQue.add(rootColCollection);
+			Set<ReadingExcelColumn> requiredCols = new HashSet<>();
+			Map<ExcelColumnMatcher, ReadingExcelColumn> matcherExcelColumnMap = new HashMap<>();
+			while(!colCollectionQue.isEmpty()) {
+				ReadingExcelColumnCollection colCollection = colCollectionQue.remove();
+				for(ReadingExcelColumn col : colCollection.columns) {
+					ExcelColumnConfiguration colCfg = col.columnConfiguration;
+					
+					if(!colCfg.isCascaded) {
+						ExcelColumnMatcher usingMatcher = getExcelColumnMatcher(colCfg);
+						matcherExcelColumnMap.put(usingMatcher, col);
+						if(colCfg.requiredForDeserializing) requiredCols.add(col);
+					}else colCollectionQue.add(col.cascadeCollection);
+				}
 			}
 
 			ExcelTable excelTable = getOrUseDefaultExcelTableAnnotation(dataType);
 			int titleNum = excelTable.titleAt();
 			Row titleRow = ExcelUtils.getOrCreateRow(sheet, titleNum);
 			{
-				Set<FocusingExcelColumn> matchedColumns = new HashSet<>();
+				Set<ReadingExcelColumn> matchedColumns = new HashSet<>();
 				for(int colNum = titleRow.getFirstCellNum(), lastColNum = titleRow.getLastCellNum(); colNum >= 0 && colNum < lastColNum; colNum++) {
 					Cell cell = titleRow.getCell(colNum);
 					if(cell == null) continue;
 					
-					String colName = ExcelUtils.getCellValueAsString(cell);
-					for(ExcelColumnMatcher matcher : matchers) {
+					String colName = simpleCellValueReader.read(cell);
+					for(ExcelColumnMatcher matcher : matcherExcelColumnMap.keySet()) {
 						if(matcher.isMatchWith(colName)) {
-							FocusingExcelColumn col = matcherExcelColumnMap.get(matcher);
+							ReadingExcelColumn col = matcherExcelColumnMap.get(matcher);
 							if(matchedColumns.contains(col)) throw new RuntimeException("将列名" + colName + "匹配到已完成匹配的列 " + col.colName + " 中");
 							
 							col.colIdx = colNum;
@@ -166,31 +167,23 @@ public class PoiExcelCooly implements ExcelCooly {
 				}
 				if(requiredCols.size() > 0) {
 					StringBuilder requiredColsNameBuilder = new StringBuilder();
-					for(FocusingExcelColumn col : requiredCols) requiredColsNameBuilder.append(col.configuration.name).append(", ");
+					for(ReadingExcelColumn col : requiredCols) requiredColsNameBuilder.append(col.columnConfiguration.name).append(", ");
 					throw new RuntimeException("Excel表 " + sheet.getSheetName() + " 需要包括列 " + requiredColsNameBuilder.substring(0, requiredColsNameBuilder.length() - 2));
 				}
-				containedCols = null;
-				requiredCols = null;
-				matchers = null;
-				matchedColumns = null;
 			}
+			requiredCols = null;
 			
 			// Read data
-			MergedList<MergedRow> mergedRows = new MergedList<>();
+			MergedAddressMap mergedAddressMap = new MergedAddressMap();
 			List<CellRangeAddress> addresses = sheet.getMergedRegions();
 			if((addresses = sheet.getMergedRegions()) != null && addresses.size() > 0) {
 				for(CellRangeAddress address : addresses) {
-					int rowStartAt = address.getFirstRow();
-					MergedRow mergedRow = mergedRows.get(rowStartAt);
-					if(mergedRow == null) {
-						mergedRow = new MergedRow(rowStartAt, address.getLastRow() - address.getFirstRow() + 1);
-						mergedRows.add(mergedRow);
-					}
-					int colStartAt = address.getFirstColumn();
-					mergedRow.addMergedColumn(new MergedColumn(colStartAt, address.getLastColumn() - address.getFirstColumn() + 1));
+					int rowStart = address.getFirstRow(), colStart = address.getFirstColumn();
+					MergedAddress mergedAddr = new MergedAddress(address.getFirstRow(), address.getLastRow(), address.getFirstColumn(), address.getLastColumn());
+					mergedAddressMap.put(rowStart, colStart, mergedAddr);
 				}
 			}
-			return extractData(mergedRows, basicCols, dataType, sheet, sheet.getFirstRowNum(), sheet.getLastRowNum(), titleNum);
+			return extractData(mergedAddressMap, rootColCollection, dataType, sheet, sheet.getFirstRowNum(), sheet.getLastRowNum(), titleNum);
 		} finally {
 			try {
 				workbook.close();
@@ -200,8 +193,11 @@ public class PoiExcelCooly implements ExcelCooly {
 		}
 	}
 	
-	private List<ExcelColumnConfiguration> readConfigurationFromClass(Class<?> dataClass, Class<?> lookingClass){
-		List<ExcelColumnConfiguration> colCfgs = new LinkedList<>();
+	private ExcelColumnConfigurationCollection extractCfgFromClass(Class<?> dataClass, Class<?> lookingClass){
+		ExcelColumnConfigurationCollection collection = new ExcelColumnConfigurationCollection();
+		collection.type = dataClass;
+		List<ExcelColumnConfiguration> allColCfgs = collection.configurations;
+		
 		while(lookingClass != Object.class) {
 			// A ExcelDateCell annotation and a ExcelCell annotation can annotate on a 
 			// property or a method of an instance, so we need to scan all properties 
@@ -209,37 +205,36 @@ public class PoiExcelCooly implements ExcelCooly {
 			
 			// On field
 			for(Field field : lookingClass.getDeclaredFields()) {
-				ExcelColumnConfiguration colCfg = PoiExcelColumnConfigurationBuilder.buildFrom(field);
+				ExcelColumnConfiguration colCfg = readFrom(field);
 				if(colCfg == null) continue;
-				colCfgs.add(colCfg);
-				colCfg.dataType = dataClass;
+				colCfg.belongCollection = collection;
 				
+				if(colCfg.isIdCell) collection.idColumnConfiguration = colCfg;
+				allColCfgs.add(colCfg);
+
 				// 获取反序列化器
+				Class<?> fieldType = field.getType();
 				ExcelCellValueDeserializer deserializer = null;
-				if(!colCfg.deserializerType.equals(UsingDefaultValueDeserializer.class)) {
+				boolean isCascaded;
+				if(isCascaded = colCfg.isCascaded) {
+					Class<?> cascadeType = colCfg.concreteType;
+					if(!JDK_VALUE_TYPE.contains(cascadeType)) {
+						collection.cascadedCollections.add(colCfg.cascadeConfigurationCollection = extractCfgFromClass(cascadeType, cascadeType));
+						deserializer = CascadeDeserializer.INSTANCE;
+					}
+				}else if(!colCfg.deserializerType.equals(UsingDefaultValueDeserializer.class)) {
 					try {
 						deserializer = colCfg.deserializerType.newInstance();
 					} catch (Exception e) {
 						throw new RuntimeException("无法实例化属性设置器", e);
 					}
 				}else {
-					// According to the type of field or method to choice a deserializerType if there are not given deserializerType
-					
-					Class<?> usingType = field.getType();
-					boolean isArray = false;
-					deserializer = deserializers.get(usingType);
-					if(colCfg.isContainer || (isArray = colCfg.isArray)) {
-						usingType = colCfg.concreteType;
-						if(!JDK_VALUE_TYPE.contains(usingType)) {
-							// 内嵌
-							colCfg.dataType = usingType;
-							colCfg.isEmbedded = true;
-							colCfg.embeddedConfigurations = readConfigurationFromClass(usingType, usingType);
-							deserializer = EmbeddedDeserializer.INSTANCE;
-						}else if(deserializers.containsKey(usingType)) {
-							if(isArray) deserializer = deserializers.get(ArrayCodec.class);
-						}else deserializer = null;
-					}
+					if(colCfg.isArray || colCfg.isContainer) {
+						if(colCfg.isArray) deserializer = deserializers.get(ArrayResolver.class);
+						else deserializer = deserializers.get(fieldType);
+						
+						if(!JDK_VALUE_TYPE.contains(colCfg.concreteType)) deserializer = null;
+					}else deserializer = deserializers.get(fieldType);
 					
 					if(deserializer == null) {
 						throw new RuntimeException("No suitable deserializer for deserializing excel column value to field named " + field.getName());
@@ -247,10 +242,12 @@ public class PoiExcelCooly implements ExcelCooly {
 				}
 				colCfg.deserializer = deserializer;
 				
+				// 级联对象也要提供setter
+				
 				// 决定java值注入器。如果指定了注入器，则使用指定的注入器，否则，如果指定了反序列化器，则认为该反序列化的返回值符合对应属性的类型；因为默认的反序列化器已经反序列化到指定
 				// 的类型，所以直接查找对应类型的setter或直接注入即可
-				Method javaBeanSetter = ReflectionUtils.getAccessibleSetterOfField(lookingClass, field, field.getType());
-				if(!colCfg.valueSetterType.equals(UsingDefaultValueSetter.class)) {
+				Method javaBeanSetter = ReflectionUtils.getAccessibleSetterOfField(lookingClass, field, fieldType);
+				if(!isCascaded && !colCfg.valueSetterType.equals(UsingDefaultValueSetter.class)) {
 					try {
 						colCfg.valueSetter = colCfg.valueSetterType.newInstance();
 					} catch (Exception e) {
@@ -262,13 +259,34 @@ public class PoiExcelCooly implements ExcelCooly {
 						colCfg.valueSetter = new JavaPropertyValueInjector(field);
 					}else colCfg.valueSetter = new JavaBeanMethorSetter(javaBeanSetter);
 				}
+				
+				// 级联对象也要提供getter
+				
+				JavaValueGetter valueGetter = null;
+				Class<? extends JavaValueGetter> valueGetterType;
+				if(!isCascaded && !(valueGetterType = colCfg.valueGetterType).equals(UsingDefaultValueGetter.class)) {
+					try {
+						valueGetter = valueGetterType.newInstance();
+					} catch (Exception e) {
+						throw new RuntimeException("无法实例化属性值读取器", e);
+					}
+				}else {
+					Method javaBeanGetter =  ReflectionUtils.getAccessibleGetterOfField(lookingClass, field, fieldType);
+					if(javaBeanGetter == null) {
+						field.setAccessible(true);
+						valueGetter = new JavaProprtyValueExtractor(field);
+					}else {
+						valueGetter = new JavaBeanMethodGetter(javaBeanGetter);
+					}
+				}
+				colCfg.valueGetter = valueGetter;
 			}
 			
 			// On method
 			for(Method method : lookingClass.getDeclaredMethods()) {
-				ExcelColumnConfiguration colCfg = PoiExcelColumnConfigurationBuilder.buildFrom(method);
+				ExcelColumnConfiguration colCfg = readFrom(method);
 				if(colCfg != null) {
-					colCfgs.add(colCfg);
+					allColCfgs.add(colCfg);
 					
 					int numParams = method.getParameterCount();
 					if(numParams == 0) continue;	// May be a getter
@@ -277,26 +295,56 @@ public class PoiExcelCooly implements ExcelCooly {
 					Class<?> limitedType = method.getParameterTypes()[0];
 					ExcelCellValueDeserializer deserializer = deserializers.get(limitedType);
 					colCfg.deserializer = deserializer;
+					
+					JavaValueGetter valueGetter = null;
+					Class<? extends JavaValueGetter> valueGetterType;
+					if(!(valueGetterType = colCfg.valueGetterType).equals(UsingDefaultValueGetter.class)) {
+						try {
+							valueGetter = valueGetterType.newInstance();
+						} catch (Exception e) {
+							throw new RuntimeException("无法实例化属性值读取器", e);
+						}
+					}else valueGetter = new JavaBeanMethodGetter(method);
+					colCfg.valueGetter = valueGetter;
 				}
 			}
 			
 			lookingClass = lookingClass.getSuperclass();
 		}
 		
-		return colCfgs;
+		return collection;
 	}
 	
-	private List<FocusingExcelColumn> prepareFocusingExcelColumn(List<ExcelColumnConfiguration> colCfgs) {
-		List<FocusingExcelColumn> columns = new LinkedList<>();
-		for(ExcelColumnConfiguration colCfg : colCfgs) {
-			FocusingExcelColumn focusingExcelColumn = new FocusingExcelColumn(colCfg);
-			columns.add(focusingExcelColumn);
-			if(colCfg.isEmbedded) {
-				focusingExcelColumn.isEmbedded = true;
-				focusingExcelColumn.embeddedExcelColumns = prepareFocusingExcelColumn(colCfg.embeddedConfigurations);
+	private ReadingExcelColumnCollection prepareReadingExcelColumn(ExcelColumnConfigurationCollection configurationCollection) {
+		ReadingExcelColumnCollection collection = new ReadingExcelColumnCollection();
+		collection.configurationCollection = configurationCollection;
+		List<ReadingExcelColumn> columns = collection.columns;
+		for(ExcelColumnConfiguration colCfg : configurationCollection.configurations) {
+			ReadingExcelColumn exCol = new ReadingExcelColumn(colCfg);
+			if(colCfg.isCascaded) {
+				exCol.isCascaded = true;
+				collection.cascadedCollections.add(
+						exCol.cascadeCollection = prepareReadingExcelColumn(colCfg.cascadeConfigurationCollection));
 			}
+			columns.add(exCol);
 		}
-		return columns;
+		return collection; 
+	}
+	
+	private WritingExcelColumnCollection prepareWritingExcelColumn(ExcelColumnConfigurationCollection configurationCollection) {
+		WritingExcelColumnCollection collection = new WritingExcelColumnCollection();
+		collection.configurationCollection = configurationCollection;
+		List<WritingExcelColumn> columns = collection.columns;
+		for(ExcelColumnConfiguration colCfg : configurationCollection.configurations) {
+			WritingExcelColumn exCol = new WritingExcelColumn(colCfg);
+			if(colCfg.isCascaded) {
+				exCol.isCascaded = true;
+				collection.cascadedCollections.add(
+						exCol.cascadeCollection = prepareWritingExcelColumn(colCfg.cascadeConfigurationCollection));
+			}
+			columns.add(exCol);
+		}
+		return collection; 
 	}
 	
 	private static ExcelColumnMatcher getExcelColumnMatcher(ExcelColumnConfiguration configuration) {
@@ -329,23 +377,35 @@ public class PoiExcelCooly implements ExcelCooly {
 	
 	// [startRowNum, endRowNum]
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private List extractData(MergedList<MergedRow> mergedRows, List<FocusingExcelColumn> columns, Class<?> dataType, Sheet sheet, int startRowNum, int endRowNum, int titleNum) {
+	private List extractData(MergedAddressMap mergedAddressMap, ReadingExcelColumnCollection colCollection, Class<?> dataType, Sheet sheet, int startRowNum, int endRowNum, int titleNum) {
+		ReadingExcelColumn idColumn = colCollection.idColumn;
 		PoiExcelValueDeserializerParameter deserializerParam = new PoiExcelValueDeserializerParameter();
 		List data = new ArrayList();
 		for(int rowNum = startRowNum, lastRowNum = endRowNum; rowNum >= 0 && rowNum <= lastRowNum; rowNum++) {
 			if(rowNum == titleNum) continue;
 			
-			int nextRowNum = rowNum, numMergedRows = 0;
-			MergedRow mergedRow = mergedRows.get(rowNum);
-			if(mergedRow != null) {
-				nextRowNum = rowNum + (numMergedRows = mergedRow.getNumRowMergeds()) - 1;
-			}
-			
 			Row row = sheet.getRow(rowNum);
-			if(row == null) {
-				rowNum = nextRowNum;
-				continue;
-			}
+			if(row == null) continue;
+			
+			List<ReadingExcelColumn> columns = colCollection.columns;
+			
+			// If there specified an id column then use it to confirm how many rows data write to the data type, otherwise 
+			// choose certain column as id column
+			// [start, end]
+			int start = rowNum, end = rowNum, idColNum;
+			if(idColumn == null) {
+				ReadingExcelColumn aCol = null;
+				for(ReadingExcelColumn col : columns) {
+					if(!col.isCascaded) {
+						aCol = col;
+						break;
+					}
+				}
+				if(aCol != null) idColNum = aCol.colIdx;
+				else idColNum = row.getFirstCellNum();
+			}else idColNum = idColumn.colIdx;
+			MergedAddress mAddr = mergedAddressMap.get(rowNum, idColNum);
+			if(mAddr != null) end = mAddr.getEndRow();
 			
 			Object instance;
 			try {
@@ -355,20 +415,21 @@ public class PoiExcelCooly implements ExcelCooly {
 			}
 			
 			boolean addInstanceToList = false;
-			for(FocusingExcelColumn col : columns) {
-				if(col.isEmbedded) {
-					ExcelColumnConfiguration colCfg = col.configuration;
-					List ls = extractData(mergedRows, col.embeddedExcelColumns, colCfg.dataType, sheet, rowNum, nextRowNum, titleNum);
+			for(ReadingExcelColumn col : colCollection.columns) {
+				
+				if(col.isCascaded) {
+					ExcelColumnConfiguration colCfg = col.columnConfiguration;
+					List ls = extractData(mergedAddressMap, col.cascadeCollection, colCfg.concreteType, sheet, start, end, titleNum);
 					if(colCfg.isArray) {
 						Object arr = Array.newInstance(dataType, ls.size());
 						for(int i = 0, num = ls.size(); i < num; i++) Array.set(arr, i, ls.get(i));
-						col.configuration.valueSetter.set(instance, arr, null);
+						col.columnConfiguration.valueSetter.set(instance, arr, null);
 					}else if(colCfg.isContainer) {
-						col.configuration.valueSetter.set(instance, ls, null);
+						col.columnConfiguration.valueSetter.set(instance, ls, null);
 					}else {
 						int num;
-						if((num = ls.size()) <= 0) col.configuration.valueSetter.set(instance, null, null);
-						else if(num <= 1) col.configuration.valueSetter.set(instance, ls.get(0), null);
+						if((num = ls.size()) <= 0) col.columnConfiguration.valueSetter.set(instance, null, null);
+						else if(num <= 1) col.columnConfiguration.valueSetter.set(instance, ls.get(0), null);
 						else throw new RuntimeException("无法将多行数据转为单行数据");
 					}
 					
@@ -379,11 +440,12 @@ public class PoiExcelCooly implements ExcelCooly {
 					if(cell == null) continue;
 					
 					Object[] cells = null;
-					if(numMergedRows <= 1) cells = new Object[] {cell};
+					if(start == end) cells = new Object[] {cell};
 					else {
-						cells = new Object[numMergedRows];
+						int numRows = end - start + 1;
+						cells = new Object[numRows];
 						cells[0] = cell;
-						for(int i = 1, subRowNum = rowNum + 1, stopAt = rowNum + numMergedRows; subRowNum < stopAt; subRowNum++, i++) {
+						for(int i = 1, subRowNum = start + 1, stopAt = end; subRowNum <= stopAt; subRowNum++, i++) {
 							Row subRow = sheet.getRow(subRowNum);
 							if(subRow != null) cells[i] = subRow.getCell(colIdx);
 						}
@@ -393,9 +455,9 @@ public class PoiExcelCooly implements ExcelCooly {
 					deserializerParam.cells = cells;
 					deserializerParam.readingColumn = col;
 					deserializerParam.deserializes = deserializers;
-					deserializerParam.targetJavaType = col.configuration.concreteType;
-					Object value = col.configuration.deserializer.deserialize(deserializerParam);
-					col.configuration.valueSetter.set(instance, value, col);
+					deserializerParam.targetJavaType = col.columnConfiguration.concreteType;
+					Object value = col.columnConfiguration.deserializer.deserialize(deserializerParam);
+					col.columnConfiguration.valueSetter.set(instance, value, col);
 					
 					addInstanceToList = true;
 				}
@@ -403,17 +465,15 @@ public class PoiExcelCooly implements ExcelCooly {
 			
 			if (addInstanceToList) data.add(instance);
 			
-			rowNum = nextRowNum;
+			rowNum = end;
 		}
 		
 		return data;
 	}
 	
-	public void write(String fileName, String sheetName, List<?> data, boolean override) {
+	@Override
+	public <Type> void write(ExcelType excelType, String fileName, String sheetName, List<Type> data, Class<Type> dataType, boolean override) {
 		if (fileName == null) throw new RuntimeException("File name must not be null");
-		
-		ExcelType excelType = ExcelType.XLSX;
-		if(fileName.endsWith(".xls")) excelType = ExcelType.XLS;
 		
 		Workbook workbook;
 		try {
@@ -424,132 +484,68 @@ public class PoiExcelCooly implements ExcelCooly {
 		}
 		try {
 			Sheet sheet = workbook.getSheet(sheetName);
+			if(sheet != null) {
+				if(override) {
+					int oldSheetIdx = workbook.getSheetIndex(sheetName);
+					if(oldSheetIdx >= 0) workbook.removeSheetAt(oldSheetIdx);
+					sheet = null;
+				}
+			}
 			if(sheet == null) sheet = workbook.createSheet(sheetName);
 			
 			// java值 -> java值获取器将值读取出来 -> java值序列化器将值序列化到excel中
 			
 			data = Optional.ofNullable(data).orElse(Collections.emptyList());
-			Class<?> dataType = getDataTypeFromData(data);
 			if(dataType != null) {
 				int rowNo = override ? 0 : sheet.getLastRowNum() + 1;
 				
+				ExcelColumnConfigurationCollection rootCfgCollection = extractCfgFromClass(dataType, dataType);
+				WritingExcelColumnCollection rootColCollection = prepareWritingExcelColumn(rootCfgCollection);
+				Queue<WritingExcelColumnCollection> colCollectionQue = new LinkedList<>();
+				colCollectionQue.add(rootColCollection);
 				List<WritingExcelColumn> containedFields = new ArrayList<>();
-				Class<?> lookingClass = dataType;
-				while(lookingClass != Object.class) {
-					
-					// A ExcelDateCell annotation and a ExcelCell annotation can annotate on a 
-					// property or a method of an instance, so we need to scan all properties 
-					// and all method of the instance.
-					
-					// On property
-					for(Field field : lookingClass.getDeclaredFields()) {
-						ExcelColumnConfiguration colCfg = PoiExcelColumnConfigurationBuilder.buildFrom(field);
-						if (colCfg != null) {
-							
-							// 决定将要使用的属性值获取器
-							Method javaBeanGetter = null;
-							JavaValueGetter valueGetter = null;
-							if(!colCfg.valueGetterType.equals(UsingDefaultValueGetter.class)) {
-								try {
-									valueGetter = colCfg.valueGetterType.newInstance();
-								} catch (Exception e) {
-									throw new RuntimeException("无法实例化属性获取器", e);
-								}
-							}else {
-								javaBeanGetter = ReflectionUtils.getAccessibleGetterOfField(lookingClass, field);
-								if(javaBeanGetter == null) {
-									field.setAccessible(true);
-									valueGetter = new JavaProprtyValueExtractor(field);
-								}else valueGetter = new JavaBeanMethodGetter(javaBeanGetter);
-							}
-							
-							PropertyValueSerializer serializer = null;
-							if(!colCfg.serializerType.equals(UsingDefaultValueSerializer.class)) {
-								try {
-									serializer = colCfg.serializerType.newInstance();
-								} catch (Exception e) {
-									throw new RuntimeException("无法实例化序列化器", e);
-								}
-							}else serializer = new PropertyValueDynamicSerializer(serializers);
-							colCfg.serializer = serializer;
-							
-							containedFields.add(new WritingExcelColumn(colCfg, field, javaBeanGetter, valueGetter, serializer));
-						}
+				while(!colCollectionQue.isEmpty()) {
+					WritingExcelColumnCollection colCollection = colCollectionQue.remove();
+					for(WritingExcelColumn col : colCollection.columns) {
+						ExcelColumnConfiguration colCfg = col.columnConfiguration;
+						if(!colCfg.requiredForSerializing) continue;
+						
+						if(!col.isCascaded) containedFields.add(col); 
+						else colCollectionQue.add(col.cascadeCollection);
 					}
-					
-					// On method
-					for(Method method : lookingClass.getDeclaredMethods()) {
-						ExcelColumnConfiguration colCfg = PoiExcelColumnConfigurationBuilder.buildFrom(method);
-						if (colCfg != null) {
-							
-							// Make sure that the method which will be call for getting value to 
-							// serialize to excel table is a non-parameter method. 
-							if(method.getReturnType().equals(Void.TYPE)) continue;	// May be a setter
-							else if (method.getParameterCount() > 0) throw new RuntimeException("请确保将返回值序列化到Excel表内的方法为无参方法");
-							
-							if (!method.isAccessible()) method.setAccessible(true);
-							JavaValueGetter getter = new JavaBeanMethodGetter(method);
-							
-							PropertyValueSerializer serializer = null;
-							if(!colCfg.serializerType.equals(UsingDefaultValueSerializer.class)) {
-								try {
-									serializer = colCfg.serializerType.newInstance();
-								} catch (Exception e) {
-									throw new RuntimeException("无法实例化序列化器", e);
-								}
-							}else serializer = new PropertyValueDynamicSerializer(serializers);
-							
-							containedFields.add(new WritingExcelColumn(colCfg, method, method, getter, serializer));
-						}
-					}
-					
-					lookingClass = lookingClass.getSuperclass();
 				}
 				containedFields.sort((f1, f2) -> f1.order - f2.order);
+				for(int i = 0, numCols = containedFields.size(); i < numCols; i++) {
+					containedFields.get(i).order = i;
+				}
 				
 				ExcelTable excelTable = getOrUseDefaultExcelTableAnnotation(dataType);
 				int numFieldsNeedToWrite = containedFields.size();
-				ExcelRowValueWriter rowValueWriter = DefaultExcelRowValueWriter.Singleton.INSTANCE;
-				if(!excelTable.rowValueWriter().equals(DefaultExcelRowValueWriter.class)) {
-					try {
-						rowValueWriter = excelTable.rowValueWriter().newInstance();
-					} catch (Exception e) {
-						throw new RuntimeException("无法实例化Excel行值写入器", e);
-					}
-				}
 				
 				// Set column width and write title
 				// Note: Only when it is in the override mode, it sets the column width
-				CellStyle titleStyle = workbook.createCellStyle();
-				titleStyle.setAlignment(excelTable.titleAlignment());
-				titleStyle.setVerticalAlignment(excelTable.titleVerticalAlignment());
-				titleStyle.setBorderTop(excelTable.titleBorderTop());
-				titleStyle.setBorderBottom(excelTable.titleBorderBottom());
-				titleStyle.setBorderLeft(excelTable.titleBorderLeft());
-				titleStyle.setBorderRight(excelTable.titleBorderRight());
-				titleStyle.setWrapText(excelTable.titleWrapText());
+//				CellStyle titleStyle = workbook.createCellStyle();
+//				titleStyle.setAlignment(excelTable.titleAlignment());
+//				titleStyle.setVerticalAlignment(excelTable.titleVerticalAlignment());
+//				titleStyle.setBorderTop(excelTable.titleBorderTop());
+//				titleStyle.setBorderBottom(excelTable.titleBorderBottom());
+//				titleStyle.setBorderLeft(excelTable.titleBorderLeft());
+//				titleStyle.setBorderRight(excelTable.titleBorderRight());
+//				titleStyle.setWrapText(excelTable.titleWrapText());
 				Row row = ExcelUtils.getOrCreateRow(sheet, rowNo++);
 				row.setHeight(excelTable.titleHeight());
 				for(int i = 0; i < numFieldsNeedToWrite; i++) {
 					WritingExcelColumn writingExcelCell = containedFields.get(i);
 					Cell cell = ExcelUtils.getOrCreateCell(row, i);
-					cell.setCellStyle(titleStyle);
-					cell.setCellValue(writingExcelCell.usingColName);
+//					cell.setCellStyle(titleStyle);
+					cell.setCellValue(writingExcelCell.columName);
 				}
-				if(override) for(int i = 0; i < numFieldsNeedToWrite; i++) sheet.setColumnWidth(i, containedFields.get(i).width);
 				
 				// Write data
-				ExcelRowValueWritingParam rowValueWritingParam = new ExcelRowValueWritingParam();
-				rowValueWritingParam.excelTable = excelTable;
-				rowValueWritingParam.workbook = workbook;
-				rowValueWritingParam.sheet = sheet;
-				rowValueWritingParam.writingExcelColumns = containedFields;
-				int numDataNeedToWrite = data.size();
-				for(int i = 0; i < numDataNeedToWrite; i++) {
+				for(int i = 0, numDataNeedToWrite = data.size(); i < numDataNeedToWrite; i++) {
 					Object writingData = data.get(i);
-					rowValueWritingParam.instance = writingData;
-					rowValueWritingParam.writeToLineNo = rowNo;
-					rowNo = rowValueWriter.write(rowValueWritingParam);
+					int numRowsUsed = writeRowData(rowNo, writingData, sheet, rootColCollection);
+					rowNo += numRowsUsed;
 				}
 			}
 			try {
@@ -566,18 +562,229 @@ public class PoiExcelCooly implements ExcelCooly {
 		}
 	}
 	
-	private static Class<?> getDataTypeFromData(List<?> data){
-		Iterator<?> iterator = data.iterator();
-		Object instance = null;
-		while(instance == null && iterator.hasNext()) instance = iterator.next();
-		return instance == null ? null : instance.getClass();
+	/**
+	 * 
+	 * @return last writing row sum(inclusive)
+	 */
+	@SuppressWarnings("rawtypes")
+	private int writeRowData(int startRowNum, Object dataInstance, Sheet sheet, WritingExcelColumnCollection writingColumnCollection) {
+		if(dataInstance == null) return startRowNum;
+		
+		List<int[]> rowRanges = new LinkedList<>();
+		Set<Integer> writedSingleRowCols = new HashSet<>();
+		Row row = ExcelUtils.getOrCreateRow(sheet, startRowNum);
+		int numRowsUsing = 0;
+		List<WritingExcelColumn> columns = writingColumnCollection.columns;
+		for(WritingExcelColumn column : columns) {
+			ExcelColumnConfiguration colCfg = column.columnConfiguration;
+			Object prop = colCfg.valueGetter.get(dataInstance, column);
+			if(prop == null) continue;
+			numRowsUsing = Math.max(numRowsUsing, 1);
+			
+			if(column.isCascaded) {
+				WritingExcelColumnCollection cascaded = column.cascadeCollection;
+				if(colCfg.isArray) {
+					int lenArr = Array.getLength(prop);
+					int cascadedStartRowNum = startRowNum, tmpCountRow = 0;
+					for(int i = 0; i < lenArr; i++) {
+						Object dataInArr = Array.get(prop, i);
+						if(dataInArr == null) continue;
+						int numSubRows = writeRowData(cascadedStartRowNum, dataInArr, sheet, cascaded);
+						cascadedStartRowNum += numSubRows;
+						tmpCountRow += numSubRows;
+					}
+					if(tmpCountRow > 1) rowRanges.add(new int[] {startRowNum, startRowNum + tmpCountRow - 1});
+					numRowsUsing = Math.max(numRowsUsing, tmpCountRow);
+				}else if(colCfg.isContainer) {
+					Collection c = (Collection) prop;
+					int cascadedStartRowNum = startRowNum, tmpCountRow = 0;
+					for(Object dataInC : c) {
+						if(dataInC == null) continue;
+						int numSubRows = writeRowData(cascadedStartRowNum, dataInC, sheet, cascaded);
+						cascadedStartRowNum += numSubRows;
+						tmpCountRow += numSubRows;
+					}
+					if(tmpCountRow > 1) rowRanges.add(new int[] {startRowNum, startRowNum + tmpCountRow - 1});
+					numRowsUsing = Math.max(numRowsUsing, tmpCountRow);
+				}else {
+					int tmpCountRow = writeRowData(startRowNum, prop, sheet, cascaded);
+					if(tmpCountRow > 1) rowRanges.add(new int[] {startRowNum, startRowNum + tmpCountRow - 1});
+					numRowsUsing = Math.max(numRowsUsing, tmpCountRow);
+				}
+			}else {
+				int colIdx = column.getOrder();
+				PropertyValueSerializationParameter parameter = new PropertyValueSerializationParameter();
+				parameter.columnConfiguration = colCfg;
+				if(colCfg.isArray) {
+					Class<?> concreteType = colCfg.concreteType;
+					int lenArr = Array.getLength(prop), tmpCountRow = 0;
+					for(int i = 0; i < lenArr; i++) {
+						Object dataInArr = Array.get(prop, i);
+						if(dataInArr == null) continue;
+						parameter.javaValue = dataInArr;
+						PropertyValueSerializer serializer = serializers.get(concreteType);
+						if(serializer == null) throw new RuntimeException("没有支持类型 " + concreteType + " 的序列化器");
+						String valToWrite = serializer.serialize(parameter);
+						if(valToWrite == null) continue;
+						
+						Row subRow = ExcelUtils.getOrCreateRow(sheet, startRowNum + i);
+						Cell cell = ExcelUtils.getOrCreateCell(subRow, colIdx);
+						cell.setCellValue(valToWrite);
+						
+						tmpCountRow += 1;
+					}
+					if(tmpCountRow > 1) rowRanges.add(new int[] {startRowNum, startRowNum + tmpCountRow - 1});
+					numRowsUsing = Math.max(numRowsUsing, tmpCountRow);
+				}else if(colCfg.isContainer) {
+					Class<?> concreteType = colCfg.concreteType;
+					Collection c = (Collection) prop;
+					int i = 0, tmpCountRow = 0;
+					for(Object dataInC : c) {
+						if(dataInC == null) continue;
+						parameter.javaValue = dataInC;
+						PropertyValueSerializer serializer = serializers.get(concreteType);
+						if(serializer == null) throw new RuntimeException("没有支持类型 " + concreteType + " 的序列化器");
+						String valToWrite = serializer.serialize(parameter);
+						if(valToWrite == null) continue;
+						
+						Row subRow = ExcelUtils.getOrCreateRow(sheet, startRowNum + i++);
+						Cell cell = ExcelUtils.getOrCreateCell(subRow, colIdx);
+						cell.setCellValue(valToWrite);
+						
+						tmpCountRow += 1;
+					}
+					if(tmpCountRow > 1) rowRanges.add(new int[] {startRowNum, startRowNum + tmpCountRow - 1});
+					numRowsUsing = Math.max(numRowsUsing, tmpCountRow);
+				}else {
+					PropertyValueSerializer serializer = serializers.get(prop.getClass());
+					if(serializer == null) throw new RuntimeException("没有支持类型 " + prop.getClass() + " 的序列化器");
+					parameter.javaValue = prop;
+					String valToWrite = serializer.serialize(parameter);
+					if(valToWrite == null) continue;
+					Cell cell = ExcelUtils.getOrCreateCell(row, colIdx);
+					cell.setCellValue(valToWrite);
+					writedSingleRowCols.add(colIdx);
+				}
+			}
+		}
+		
+		if(numRowsUsing > 1) {
+			for(int singleRowCol : writedSingleRowCols) {
+				for(int[] rowRange : rowRanges) {
+					CellRangeAddress cra = new CellRangeAddress(rowRange[0], rowRange[1], singleRowCol, singleRowCol);
+					sheet.addMergedRegion(cra);
+				}
+			}
+		}
+		
+		return numRowsUsing;
 	}
 	
-	private static class EmbeddedDeserializer implements ExcelCellValueDeserializer{
-		static final EmbeddedDeserializer INSTANCE = new EmbeddedDeserializer();
+	private static ExcelColumnConfiguration readFrom(AccessibleObject ao) {
+		ExcelColumnConfiguration cfg = null;
+		Object anno = null;
+		if((anno = ao.getAnnotation(ExcelDateCell.class)) != null) {
+			ExcelDateCell cell = (ExcelDateCell) anno;
+			
+			cfg = new ExcelColumnConfiguration();
+			cfg.requiredForDeserializing = cell.requiredForDeserializing();
+			cfg.columnIndex = cell.columnIndex();
+			cfg.columnName = cell.columnName();
+			cfg.name = cell.name();
+			cfg.matchPattern = cell.matchPattern();
+			cfg.deserializerType = cell.deserializer();
+			cfg.valueSetterType = cell.setter();
+			cfg.requiredForSerializing = cell.requiredForSerializing();
+			cfg.order = cell.order();
+			cfg.valueGetterType = cell.getter();
+			
+			cfg.isDateCell = true;
+			String dateFormat = cell.dateFormat();
+			dateFormat = dateFormat == null ? "yyyy/MM/dd HH:mm:ss" : dateFormat;
+			cfg.dateFormat = dateFormat;
+		}else if((anno = ao.getAnnotation(ExcelEnumCell.class)) != null) {
+			ExcelEnumCell cell = (ExcelEnumCell) anno;
+			
+			cfg = new ExcelColumnConfiguration();
+			cfg.requiredForDeserializing = cell.requiredForDeserializing();
+			cfg.columnIndex = cell.columnIndex();
+			cfg.columnName = cell.columnName();
+			cfg.name = cell.name();
+			cfg.matchPattern = cell.matchPattern();
+			cfg.deserializerType = cell.deserializer();
+			cfg.valueSetterType = cell.setter();
+			cfg.requiredForSerializing = cell.requiredForSerializing();
+			cfg.order = cell.order();
+			cfg.valueGetterType = cell.getter();
+//			cfg.serializerType = column.serializer();
+			
+			cfg.isEnum = true;
+			ExcelColumnEnum[] enums = cell.enums();
+			Map<String, String> propertyExcelMap = new HashMap<>(), excelPropertyMap = new HashMap<>();
+			cfg.propertyExcelMap = propertyExcelMap;
+			cfg.excelPropertyMap = excelPropertyMap;
+			for(ExcelColumnEnum oneEnum : enums) {
+				String java = oneEnum.javaVal(), excel = oneEnum.excelVal();
+				propertyExcelMap.put(java, excel);
+				excelPropertyMap.put(excel, java);
+			}
+			String defaultVal = cell.defaultPropertyVal();
+			defaultVal = defaultVal.equals("") && !cell.defaultPropertyValAsEmptyString() ? null : defaultVal;
+			cfg.defaultPropertyVal = defaultVal;
+			defaultVal = cell.defaultExcelVal();
+			defaultVal = defaultVal.equals("") && !cell.defaultExcelValAsEmptyString() ? null : defaultVal;
+			cfg.defaultExcelVal = defaultVal;
+		}else if((anno = ao.getAnnotation(ExcelCell.class)) != null) {
+			ExcelCell cell = (ExcelCell) anno;
+			
+			cfg = new ExcelColumnConfiguration();
+			cfg.isIdCell = cell.idCell();
+			cfg.accessibleObject = ao;
+			cfg.requiredForDeserializing = cell.requiredForDeserializing() || cell.idCell();
+			cfg.columnIndex = cell.columnIndex();
+			cfg.columnName = cell.columnName();
+			cfg.name = cell.name();
+			cfg.matchPattern = cell.matchPattern();
+			cfg.deserializerType = cell.deserializer();
+			cfg.valueSetterType = cell.setter();
+			cfg.requiredForSerializing = cell.requiredForSerializing();
+			cfg.order = cell.order();
+			cfg.serializingName = cell.serializingName();
+			cfg.valueGetterType = cell.getter();
+			cfg.concreteType = cell.concreteType();
+			
+			if(ao instanceof Field) {
+				Field field = (Field) ao;
+				cfg.isContainer = Collection.class.isAssignableFrom(field.getType());
+				boolean isArray = field.getType().isArray();
+				cfg.isArray = isArray;
+				if(isArray) cfg.concreteType = field.getType().getComponentType();
+			}
+		}else if((anno = ao.getAnnotation(ExcelCascadeCell.class)) != null) {
+			ExcelCascadeCell cell = (ExcelCascadeCell) anno;
+			
+			cfg = new ExcelColumnConfiguration();
+			cfg.isCascaded = true;
+			cfg.accessibleObject = ao;
+			cfg.concreteType = cell.concreteType();
+			cfg.requiredForSerializing = true;
+			
+			if(ao instanceof Field) {
+				Field field = (Field) ao;
+				cfg.isContainer = Collection.class.isAssignableFrom(field.getType());
+				boolean isArray = field.getType().isArray();
+				cfg.isArray = isArray;
+				if(isArray) cfg.concreteType = field.getType().getComponentType();
+			}
+		}
+		return cfg;
+	}
+	
+	private static class CascadeDeserializer implements ExcelCellValueDeserializer{
+		static final CascadeDeserializer INSTANCE = new CascadeDeserializer();
 
 		@Override
-		public Object deserialize(ExcelValueDeserializerParameter deserializerParam) {
+		public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {
 			return null;
 		}
 	}

@@ -1,24 +1,22 @@
 package org.king.excooly.support.poi;
 
 import java.lang.reflect.AccessibleObject;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import org.king.excooly.ExcelCellValueDeserializer;
 import org.king.excooly.support.JavaValueGetter;
 import org.king.excooly.support.JavaValueSetter;
-import org.king.excooly.support.PropertyValueSerializer;
 
 /**
  * 解析ExcelColumn注解得到的配置信息
- * @author wangjw5
+ * @author king
  */
 public class ExcelColumnConfiguration {
-	Class<?> dataType;
+	ExcelColumnConfigurationCollection belongCollection;
 	
 	AccessibleObject accessibleObject;
-	
+
+	public boolean isIdCell;
 	boolean requiredForDeserializing;
 	int columnIndex;
 	String columnName;
@@ -30,14 +28,12 @@ public class ExcelColumnConfiguration {
 	JavaValueSetter valueSetter;
 	boolean requiredForSerializing;
 	int order;
+	String serializingName;
 	Class<? extends JavaValueGetter> valueGetterType;
 	JavaValueGetter valueGetter;
-	Class<? extends PropertyValueSerializer> serializerType;
-	PropertyValueSerializer serializer;
 	
 	boolean isContainer = false;
 	boolean isArray = false;
-	Class<?> concreteType;
 	
 	boolean isDateCell = false;
 	// 日期类型表格参数（当注解为ExcelDateCell时生效）
@@ -49,9 +45,11 @@ public class ExcelColumnConfiguration {
 	String defaultExcelVal;
 	Map<String, String> excelPropertyMap;
 	String defaultPropertyVal;
-	
-	boolean isEmbedded = false;
-	List<ExcelColumnConfiguration> embeddedConfigurations;
+
+	// 级联
+	boolean isCascaded = false;
+	Class<?> concreteType;
+	ExcelColumnConfigurationCollection cascadeConfigurationCollection;
 	
 	/**
 	 * 序列化到Excel表格时，属性对应表格顺序。值越大越靠后。
@@ -72,13 +70,6 @@ public class ExcelColumnConfiguration {
 	 */
 	public Class<? extends JavaValueGetter> getGetter(){
 		return valueGetterType;
-	}
-
-	/**
-	 * 指定序列化器对属性值到excel单元格进行序列化
-	 */
-	public Class<? extends PropertyValueSerializer> getSerializer(){
-		return serializerType;
 	}
 
 	/**
@@ -140,9 +131,9 @@ public class ExcelColumnConfiguration {
 		return valueGetter;
 	}
 
-	public Class<? extends PropertyValueSerializer> getSerializerType() {
-		return serializerType;
-	}
+//	public Class<? extends PropertyValueSerializer> getSerializerType() {
+//		return serializerType;
+//	}
 
 	public boolean isEnum() {
 		return isEnum;

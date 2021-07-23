@@ -10,6 +10,7 @@ import org.king.excooly.support.JavaValueSetter;
 import org.king.excooly.support.PropertyValueSerializer;
 import org.king.excooly.support.JavaValueGetter;
 import org.king.excooly.support.poi.UsingDefaultValueDeserializer;
+import org.king.excooly.support.poi.UsingDefaultValueSerializer;
 import org.king.excooly.support.poi.UsingDefaultValueSetter;
 
 /**
@@ -25,6 +26,11 @@ import org.king.excooly.support.poi.UsingDefaultValueSetter;
 public @interface ExcelDateCell {
 	
 	/**
+	 * 表示该单元格所在的列为标识列 
+	 */
+	boolean idCell() default false;
+	
+	/**
 	 * For deserializing, it is using to indicate whether the excel column must be existed. If
 	 * true, deserializing process will be stop when column not found. Default false.
 	 */
@@ -32,6 +38,7 @@ public @interface ExcelDateCell {
 	
 	/**
 	 * For deserializing, it is a zero-based index corresponding to an excel column.
+	 * 如果反序列化后的java对象是自定义对象时，
 	 * <br>
 	 * Priority: columnIndex > columnName > name > namePattern.
 	 * <br>
@@ -105,15 +112,15 @@ public @interface ExcelDateCell {
 	int order() default 0;
 	
 	/**
+	 * For serializing, it is used to indicated column name corresponding to cell
+	 */
+	String serializingName() default "";
+	
+	/**
 	 * 指定读取属性的获取器，使用该获取器获取属性值。
 	 * 注意：当该注解注解在方法上时，该配置将失效。
 	 */
 	Class<? extends JavaValueGetter> getter() default UsingDefaultValueGetter.class;
-	
-	/**
-	 * 指定序列化器对属性值到excel单元格进行序列化
-	 */
-	Class<? extends PropertyValueSerializer> serializer() default UsingDefaultValueSerializer.class;
 	
 	/**
 	 * 日期格式。对于Excel值反序列化到Java属性值暂时无效。

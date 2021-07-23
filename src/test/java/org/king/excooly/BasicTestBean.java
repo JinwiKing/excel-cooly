@@ -1,32 +1,32 @@
 package org.king.excooly;
 
 public class BasicTestBean {
-	@ExcelCell(name = "id")
+	@ExcelCell(name = "id", serializingName = "id")
 	private String id;
-	@ExcelCell(name = "name")
+	@ExcelCell(name = "name", serializingName = "name")
 	private String name;
-	@ExcelCell(name = "性别")
+	@ExcelCell(name = "性别", serializingName = "性别")
 	private String sex;
 
-	@ExcelCell(name = "整数类型")
+	@ExcelCell(name = "整数类型", serializingName = "整数类型")
 	private int intType;
-	@ExcelCell(name = "整数类型")
+	@ExcelCell(name = "整数类型", requiredForSerializing = false)
 	private Integer integerType;
-	@ExcelCell(name = "文本类型")
+	@ExcelCell(name = "文本类型", serializingName = "文本类型")
 	private String stringType;
-	@ExcelCell(name = "浮点类型")
+	@ExcelCell(name = "浮点类型", requiredForSerializing = false)
 	private float floatType;
-	@ExcelCell(name = "浮点类型")
+	@ExcelCell(name = "浮点类型", requiredForSerializing = false)
 	private Float wrapperedFloatType;
-	@ExcelCell(name = "浮点类型")
+	@ExcelCell(name = "浮点类型", requiredForSerializing = false)
 	private double doubleType;
-	@ExcelCell(name = "浮点类型")
+	@ExcelCell(name = "浮点类型", serializingName = "浮点类型")
 	private Double wrapperedDoubleType;
 	
-	@ExcelCell(matchPattern = "模糊匹配名称.*")
+	@ExcelCell(matchPattern = "模糊匹配名称.*", serializingName = "模糊匹配值")
 	private String patternMatch;
 	
-	@ExcelCell(name = "文本类型", deserializer = BasicTestBeanText2IntDeserializer.class)
+	@ExcelCell(name = "文本类型", deserializer = BasicTestBeanText2IntDeserializer.class, serializingName = "des值")
 	private int usingDeserializer;
 	
 	public String getId() {
