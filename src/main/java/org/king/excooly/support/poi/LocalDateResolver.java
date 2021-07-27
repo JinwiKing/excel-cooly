@@ -1,17 +1,13 @@
-package org.king.excooly.support.poi.ge315b3;
+package org.king.excooly.support.poi;
 
-import java.time.LocalTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
-import org.king.excooly.support.poi.AbstractValueResolver;
-import org.king.excooly.support.poi.ExcelColumnConfiguration;
-import org.king.excooly.support.poi.PropertyValueSerializationParameter;
 
-public class LocalTimeResolver extends AbstractValueResolver {
+class LocalDateResolver extends AbstractValueResolver {
 
 	@Override
 	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {
@@ -19,11 +15,11 @@ public class LocalTimeResolver extends AbstractValueResolver {
 		ExcelColumnConfiguration configuration = deserializerParam.configuration();
 		if (cell == null) return null;
 		String v = null;
-		CellType ct = cell.getCellType();
+		int ct = cell.getCellType();
 		switch (ct) {
-			case BLANK: v = null; break;
-			case STRING: v = cell.getStringCellValue(); break;
-			case FORMULA: {
+			case Cell.CELL_TYPE_BLANK: v = null; break;
+			case Cell.CELL_TYPE_STRING: v = cell.getStringCellValue(); break;
+			case Cell.CELL_TYPE_FORMULA: {
 				try {
 					v = cell.getStringCellValue();
 				} catch (Exception e) {
@@ -33,17 +29,17 @@ public class LocalTimeResolver extends AbstractValueResolver {
 				}
 				break;
 			}
-			case NUMERIC: v = String.valueOf(cell.getNumericCellValue()); break;
+			case Cell.CELL_TYPE_NUMERIC: v = String.valueOf(cell.getNumericCellValue()); break;
 			default: throw new IllegalStateException("Unsupported format cell type " + ct + " to local date");
 		}
 		
-		return LocalTime.parse(v, DateTimeFormatter.ofPattern(configuration.getDateFormat()));
+		return LocalDate.parse(v, DateTimeFormatter.ofPattern(configuration.getDateFormat()));
 	}
 
 	@Override
 	public String serialize(PropertyValueSerializationParameter serializationParam) {
-		LocalTime lt = (LocalTime) serializationParam.getJavaValue();
-		return lt.format(DateTimeFormatter.ofPattern(serializationParam.getColumnConfiguration().getDateFormat()));
+		LocalDate ld = (LocalDate) serializationParam.getJavaValue();
+		return ld.format(DateTimeFormatter.ofPattern(serializationParam.getColumnConfiguration().getDateFormat()));
 	}
 
 }

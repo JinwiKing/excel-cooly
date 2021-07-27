@@ -1,18 +1,15 @@
-package org.king.excooly.support.poi.l315b3;
+package org.king.excooly.support.poi;
 
 import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
-import org.king.excooly.support.poi.AbstractValueResolver;
-import org.king.excooly.support.poi.ExcelColumnConfiguration;
-import org.king.excooly.support.poi.PropertyValueSerializationParameter;
 
 /**
  * 负责将Excel值转为Byte或byte类型以及将Byte或byte类型值转为Excel值的默认转换器。
  * @author wangjw5
  */
-public class ByteResolver extends AbstractValueResolver {
+class ByteResolver extends AbstractValueResolver {
 
 	@Override
 	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {

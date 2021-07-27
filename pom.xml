@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.king</groupId>
 	<artifactId>excel-cooly</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/log4j/log4j -->
@@ -26,18 +26,6 @@
 			<version>3.14</version>
 			<scope>provided</scope>
 		</dependency>
-		<!-- <dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi</artifactId>
-			<version>5.0.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.apache.poi</groupId>
-		    <artifactId>poi-ooxml</artifactId>
-		    <version>5.0.0</version>
-			<scope>provided</scope>
-		</dependency> -->
 
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>

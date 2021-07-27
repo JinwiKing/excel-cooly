@@ -1,4 +1,4 @@
-package org.king.excooly.support.poi.l315b3;
+package org.king.excooly.support.poi;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -6,11 +6,8 @@ import java.time.format.DateTimeFormatter;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
-import org.king.excooly.support.poi.AbstractValueResolver;
-import org.king.excooly.support.poi.ExcelColumnConfiguration;
-import org.king.excooly.support.poi.PropertyValueSerializationParameter;
 
-public class LocalTimeResolver extends AbstractValueResolver {
+class LocalTimeResolver extends AbstractValueResolver {
 
 	@Override
 	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {

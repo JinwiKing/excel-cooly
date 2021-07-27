@@ -1,10 +1,9 @@
-package org.king.excooly.support.poi.l315b3;
+package org.king.excooly.support.poi;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.FormulaError;
-import org.king.excooly.support.poi.SimpleCellValueReader;
 
-public class CellValueHelper implements SimpleCellValueReader {
+class CellValueHelper implements SimpleCellValueReader {
 	
 	static String getCellValueAsString(Cell c) {
 		if (c == null) return null;

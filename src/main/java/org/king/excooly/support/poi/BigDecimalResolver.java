@@ -1,27 +1,24 @@
-package org.king.excooly.support.poi.ge315b3;
+package org.king.excooly.support.poi;
 
 import java.math.BigDecimal;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
-import org.king.excooly.support.poi.AbstractValueResolver;
-import org.king.excooly.support.poi.PropertyValueSerializationParameter;
 
-public class BigDecimalResolver extends AbstractValueResolver {
+class BigDecimalResolver extends AbstractValueResolver {
 
 	@Override
 	public Object doDeserialize(ExcelValueDeserializerParameter deserializerParam) {
 		Cell cell = (Cell) deserializerParam.cells()[0];
 		if (cell == null) return null;
 		BigDecimal v = null;
-		CellType ct = cell.getCellType();
+		int ct = cell.getCellType();
 		
 		switch (ct) {
-			case STRING: v = new BigDecimal(cell.getStringCellValue()); break;
-			case NUMERIC: v = BigDecimal.valueOf(cell.getNumericCellValue()); break;
-			case BLANK: v = null; break;
-			case ERROR: v = null; break;
+			case Cell.CELL_TYPE_STRING: v = new BigDecimal(cell.getStringCellValue()); break;
+			case Cell.CELL_TYPE_NUMERIC: v = BigDecimal.valueOf(cell.getNumericCellValue()); break;
+			case Cell.CELL_TYPE_BLANK: v = null; break;
+			case Cell.CELL_TYPE_ERROR: v = null; break;
 			default: throw new IllegalStateException("Unsupported format cell type " + ct + " to BigDecimal");
 		}
 		return v;

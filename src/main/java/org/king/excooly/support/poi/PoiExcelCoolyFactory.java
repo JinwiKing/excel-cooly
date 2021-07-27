@@ -25,39 +25,21 @@ public class PoiExcelCoolyFactory implements ExcelCoolyFactory {
 			doubleResolver, stringResolver, dateResolver, bigDecimalResolver, localDateResolver,
 			localTimeResolver, localDateTimeResolver;
 		SimpleCellValueReader simpleCellValueReader;
+
+		byteResolver = new ByteResolver();
+		shortResolver = new ShortResolver();
+		integerResolver = new IntegerResolver();
+		longResolver = new LongResolver();
+		floatResolver = new FloatResolver();
+		doubleResolver = new DoubleResolver();
+		stringResolver = new StringResolver();
+		dateResolver = new DateResolver();
+		bigDecimalResolver = new BigDecimalResolver();
+		localDateResolver = new LocalDateResolver();
+		localTimeResolver = new LocalTimeResolver();
+		localDateTimeResolver = new LocalDateTimeResolver();
 		
-		try {
-			Class.forName("org.apache.poi.ss.usermodel.CellType");
-			byteResolver = new org.king.excooly.support.poi.ge315b3.ByteResolver();
-			shortResolver = new org.king.excooly.support.poi.ge315b3.ShortResolver();
-			integerResolver = new org.king.excooly.support.poi.ge315b3.IntegerResolver();
-			longResolver = new org.king.excooly.support.poi.ge315b3.LongResolver();
-			floatResolver = new org.king.excooly.support.poi.ge315b3.FloatResolver();
-			doubleResolver = new org.king.excooly.support.poi.ge315b3.DoubleResolver();
-			stringResolver = new org.king.excooly.support.poi.ge315b3.StringResolver();
-			dateResolver = new org.king.excooly.support.poi.ge315b3.DateResolver();
-			bigDecimalResolver = new org.king.excooly.support.poi.ge315b3.BigDecimalResolver();
-			localDateResolver = new org.king.excooly.support.poi.ge315b3.LocalDateResolver();
-			localTimeResolver = new org.king.excooly.support.poi.ge315b3.LocalTimeResolver();
-			localDateTimeResolver = new org.king.excooly.support.poi.ge315b3.LocalDateTimeResolver();
-			
-			simpleCellValueReader = new org.king.excooly.support.poi.ge315b3.CellValueHelper();
-		} catch (Exception e) {
-			byteResolver = new org.king.excooly.support.poi.l315b3.ByteResolver();
-			shortResolver = new org.king.excooly.support.poi.l315b3.ShortResolver();
-			integerResolver = new org.king.excooly.support.poi.l315b3.IntegerResolver();
-			longResolver = new org.king.excooly.support.poi.l315b3.LongResolver();
-			floatResolver = new org.king.excooly.support.poi.l315b3.FloatResolver();
-			doubleResolver = new org.king.excooly.support.poi.l315b3.DoubleResolver();
-			stringResolver = new org.king.excooly.support.poi.l315b3.StringResolver();
-			dateResolver = new org.king.excooly.support.poi.l315b3.DateResolver();
-			bigDecimalResolver = new org.king.excooly.support.poi.l315b3.BigDecimalResolver();
-			localDateResolver = new org.king.excooly.support.poi.l315b3.LocalDateResolver();
-			localTimeResolver = new org.king.excooly.support.poi.l315b3.LocalTimeResolver();
-			localDateTimeResolver = new org.king.excooly.support.poi.l315b3.LocalDateTimeResolver();
-			
-			simpleCellValueReader = new org.king.excooly.support.poi.l315b3.CellValueHelper();
-		}
+		simpleCellValueReader = new CellValueHelper();
 		
 		DEFAULT_DESERIALIZERS.put(byte.class, byteResolver);
 		DEFAULT_DESERIALIZERS.put(Byte.class, byteResolver);
