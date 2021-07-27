@@ -6,11 +6,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.king.excooly.support.JavaValueSetter;
-import org.king.excooly.support.PropertyValueSerializer;
 import org.king.excooly.support.JavaValueGetter;
+import org.king.excooly.support.JavaValueSetter;
 import org.king.excooly.support.poi.UsingDefaultValueDeserializer;
-import org.king.excooly.support.poi.UsingDefaultValueSerializer;
 import org.king.excooly.support.poi.UsingDefaultValueSetter;
 
 /**

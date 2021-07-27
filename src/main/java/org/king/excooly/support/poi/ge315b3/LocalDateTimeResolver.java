@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.king.excooly.support.ExcelValueDeserializerParameter;
 import org.king.excooly.support.poi.AbstractValueResolver;
@@ -18,11 +19,11 @@ public class LocalDateTimeResolver extends AbstractValueResolver {
 		ExcelColumnConfiguration configuration = deserializerParam.configuration();
 		if (cell == null) return null;
 		String v = null;
-		int ct = cell.getCellType();
+		CellType ct = cell.getCellType();
 		switch (ct) {
-			case Cell.CELL_TYPE_BLANK: v = null; break;
-			case Cell.CELL_TYPE_STRING: v = cell.getStringCellValue(); break;
-			case Cell.CELL_TYPE_FORMULA: {
+			case BLANK: v = null; break;
+			case STRING: v = cell.getStringCellValue(); break;
+			case FORMULA: {
 				try {
 					v = cell.getStringCellValue();
 				} catch (Exception e) {
@@ -32,7 +33,7 @@ public class LocalDateTimeResolver extends AbstractValueResolver {
 				}
 				break;
 			}
-			case Cell.CELL_TYPE_NUMERIC: v = String.valueOf(cell.getNumericCellValue()); break;
+			case NUMERIC: v = String.valueOf(cell.getNumericCellValue()); break;
 			default: throw new IllegalStateException("Unsupported format cell type " + ct + " to local date time");
 		}
 		

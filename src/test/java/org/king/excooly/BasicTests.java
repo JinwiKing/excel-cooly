@@ -18,6 +18,19 @@ public class BasicTests {
 	}
 	
 	@Test
+	public void testBasicMultiRead() {
+		InputStream excelIs = Thread.currentThread().getClass().getResourceAsStream("/testExcel0.xlsx");
+		
+		List<BasicTestBean> ls = ExcelOperator.read(excelIs, "Sheet1", BasicTestBean.class);
+		System.out.println(ls.size());
+		excelIs = Thread.currentThread().getClass().getResourceAsStream("/testExcel0.xlsx");
+		ls = ExcelOperator.read(excelIs, "Sheet1", BasicTestBean.class);
+		System.out.println(ls.size());
+		
+		for(BasicTestBean bean : ls) System.out.println(bean);
+	}
+	
+	@Test
 	public void testBasicWrite() {
 		InputStream excelIs = Thread.currentThread().getClass().getResourceAsStream("/testExcel0.xlsx");
 		

@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -53,11 +54,10 @@ import org.king.excooly.support.common.JavaBeanMethodGetter;
 import org.king.excooly.support.common.JavaBeanMethorSetter;
 import org.king.excooly.support.common.JavaPropertyValueInjector;
 import org.king.excooly.support.common.JavaProprtyValueExtractor;
+import org.king.excooly.support.common.LfuCacheManager;
 import org.king.excooly.support.common.MergedAddress;
 import org.king.excooly.support.common.MergedAddressMap;
 import org.king.excooly.support.common.ReflectionUtils;
-import org.king.excooly.support.logger.Logger;
-import org.king.excooly.support.logger.LoggerFactory;
 
 /**
  * 
@@ -65,8 +65,9 @@ import org.king.excooly.support.logger.LoggerFactory;
  */
 @ExcelTable
 public class PoiExcelCooly implements ExcelOperation {
+	private static final LfuCacheManager CACHE_MANAGER = new LfuCacheManager(128);
 	private static final Set<Class<?>> JDK_VALUE_TYPE = new HashSet<>();
-	private final Logger logger = LoggerFactory.getLogger(getClass());
+	private final Logger logger = Logger.getLogger(getClass());
 	private final Map<Class<?>, ExcelCellValueDeserializer> deserializers = new HashMap<>();
 	private final Map<Class<?>, PropertyValueSerializer> serializers = new HashMap<>();
 	private final SimpleCellValueReader simpleCellValueReader;
@@ -124,7 +125,11 @@ public class PoiExcelCooly implements ExcelOperation {
 			Sheet sheet = workbook.getSheet(sheetName);
 			if(sheet == null) return new ArrayList<>(0);
 			
-			ExcelColumnConfigurationCollection rootCfgCollection = extractCfgFromClass(dataType, dataType);
+			ExcelColumnConfigurationCollection rootCfgCollection = (ExcelColumnConfigurationCollection) CACHE_MANAGER.get(dataType);
+			if(rootCfgCollection == null) {
+				rootCfgCollection = extractCfgFromClass(dataType, dataType);
+				CACHE_MANAGER.add(dataType, rootCfgCollection);
+			}
 			ReadingExcelColumnCollection rootColCollection = prepareReadingExcelColumn(rootCfgCollection);
 			Queue<ReadingExcelColumnCollection> colCollectionQue = new LinkedList<>();
 			colCollectionQue.add(rootColCollection);
@@ -499,7 +504,11 @@ public class PoiExcelCooly implements ExcelOperation {
 			if(dataType != null) {
 				int rowNo = override ? 0 : sheet.getLastRowNum() + 1;
 				
-				ExcelColumnConfigurationCollection rootCfgCollection = extractCfgFromClass(dataType, dataType);
+				ExcelColumnConfigurationCollection rootCfgCollection = (ExcelColumnConfigurationCollection) CACHE_MANAGER.get(dataType);
+				if(rootCfgCollection == null) {
+					rootCfgCollection = extractCfgFromClass(dataType, dataType);
+					CACHE_MANAGER.add(dataType, rootCfgCollection);
+				}
 				WritingExcelColumnCollection rootColCollection = prepareWritingExcelColumn(rootCfgCollection);
 				Queue<WritingExcelColumnCollection> colCollectionQue = new LinkedList<>();
 				colCollectionQue.add(rootColCollection);
