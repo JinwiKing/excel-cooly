@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="excool-poi5_0" />
+        <module name="excool-api" />
+        <module name="excool-common" />
+        <module name="excool-poi3_14" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="api" target="1.8" />
+      <module name="excel-cooly" target="1.8" />
+      <module name="excool-api" target="1.8" />
+      <module name="excool-common" target="1.8" />
+      <module name="excool-poi3_14" target="1.8" />
+      <module name="excool-poi5_0" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -3,9 +3,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.king</groupId>
 	<artifactId>excel-cooly</artifactId>
-	<version>1.0.0</version>
+	<version>2.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <modules>
+        <module>excool-api</module>
+		<module>excool-poi3_14</module>
+		<module>excool-poi5_0</module>
+		<module>excool-common</module>
+	</modules>
 
-	<dependencies>
+    <dependencies>
 		<!-- https://mvnrepository.com/artifact/log4j/log4j -->
 		<dependency>
 			<groupId>log4j</groupId>
